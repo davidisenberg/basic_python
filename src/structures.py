@@ -1,7 +1,7 @@
 
 def valid_parens(input: str):
     from collections import deque
-    keys = { '}':'{', ']':'[','(':')'}
+    keys = { '}':'{', ']':'[',')':'('}
     stack = deque()
 
     for s in input:
@@ -13,3 +13,6 @@ def valid_parens(input: str):
         else:
             stack.append(s)
     return len(stack) == 0
+
+def capital_case(x):
+    return x.capitalize()
