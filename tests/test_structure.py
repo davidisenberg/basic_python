@@ -2,7 +2,7 @@ import pytest
 import sys
 
 sys.path.insert(0, '../src')
-from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, heap
+from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, heap, islands, search
 
 
 @pytest.mark.parametrize("input,expected", [
@@ -38,3 +38,25 @@ def test_heap():
 
 def test_capital_case():
     assert capital_case('semaphore') == 'Semaphore'
+
+def test_islands():
+    world = [[ 1, 0, 0, 0],
+             [ 1, 1, 0, 1],
+             [ 0, 1, 0, 1],
+             [ 1, 0, 1, 0]]
+    assert islands(world) == 4
+
+
+@pytest.mark.parametrize("search_list,search_val, search_expected", [
+    ([0, 4, 7 , 9], 4, 1),
+    ([0, 4, 7, 9], 0, 0),
+    ([0, 4, 7, 9], 9, 3),
+    ([0, 4, 7, 9], 7, 2),
+    ([0, 4, 7, 9], 8, -1),
+    ([0, 4, 7, 9], 10, -1)
+])
+
+def test_search(search_list, search_val, search_expected):
+    assert search(search_list, search_val) == search_expected
+
+    
