@@ -2,7 +2,7 @@ import pytest
 import sys
 
 sys.path.insert(0, '../src')
-from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, heap, islands, search
+from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, heap, islands, search, queue
 
 
 @pytest.mark.parametrize("input,expected", [
@@ -34,7 +34,8 @@ def test_moving_average(list, num, expected):
 def test_heap():
     assert heap() == [1,1,2,3,[5,7,8]]
 
-
+def test_queue():
+    assert queue() == [1,2,3]
 
 def test_capital_case():
     assert capital_case('semaphore') == 'Semaphore'
