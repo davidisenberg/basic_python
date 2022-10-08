@@ -203,11 +203,52 @@ def queue() -> List[int]:
     return result
     
 
-# class TreeNode:
-#     def __init__(self, val=0, left=None, right=None):
-#         self.val = val
-#         self.left = left
-#         self.right = right
-# class Solution:
-#     def rangeSumBST(self, root: Optional[TreeNode], low: int, high: int) -> int:
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+
+#    7
+#  4   
+
+class DiameterCalc:
+
+    def __init__(self):
+        self.diameter = 0
+
+    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
+        if not root:
+            return 0
+
+        self.longest_path(root)
+        return self.diameter
+
+
+    def longest_path(self, root: Optional[TreeNode]) -> int:
+        if root is None:
+            return 0
     
+        left = self.longest_path(root.left)
+        right = self.longest_path(root.right)
+        val =  1+max(left, right)
+        self.diameter = max(self.diameter, left+right)
+        return val
+
+def in_order_traversal_2(root: Optional[TreeNode]) -> List[int]:
+    
+    return in_order_traversal(root.left) + [root.val] + in_order_traversal(root.right) if root else []
+
+def in_order_traversal(root: Optional[TreeNode]) -> List[int]:
+    
+    res = []
+    def traverse(root: Optional[TreeNode]):
+
+        if root.left: traverse(root.left)
+        res.append(root.val)
+        if root.right: traverse(root.right)
+    if root: traverse(root)
+    return res
+
+

@@ -2,7 +2,9 @@ import pytest
 import sys
 
 sys.path.insert(0, '../src')
-from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, heap, islands, search, queue
+from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, \
+                       heap, islands, search, queue, TreeNode, DiameterCalc, in_order_traversal
+from typing import Optional, List
 
 
 @pytest.mark.parametrize("input,expected", [
@@ -60,4 +62,27 @@ def test_islands():
 def test_search(search_list, search_val, search_expected):
     assert search(search_list, search_val) == search_expected
 
-    
+def create_tree() -> Optional[TreeNode]:
+
+    #       
+    #           7
+    #       5           10
+    #   3          8         12
+    #                 9
+    three_node = TreeNode(3, None, None)    
+    five_node = TreeNode(5, three_node, None)
+    nine_node = TreeNode(9,None, None )
+    eight_node = TreeNode(8,None, nine_node )
+    twelve_node = TreeNode(12,None, None )
+    ten_node = TreeNode(10,eight_node, twelve_node)
+    seven_node = TreeNode(7, five_node, ten_node)
+    return seven_node
+
+
+def test_diameter_tree() -> int:
+    root = create_tree()
+    assert DiameterCalc().diameterOfBinaryTree(root) == 5
+
+def test_inorder() -> List[int]:
+    root = create_tree()
+    assert in_order_traversal(root) == [3,5,7,8,9,10,12]
