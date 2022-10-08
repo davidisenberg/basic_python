@@ -36,16 +36,6 @@ def valid_parens(input: str) -> bool:
             stack.append(s)
     return len(stack)==0
 
-
-def canAttendMeetings(intervals: List[List[int]]) -> bool:
-    
-    intervals.sort(key = lambda x: x[0])
-
-    for i in range(1, len(intervals)):
-        if intervals[i-1][1] > intervals[i][0]:
-            return False
-    return True
-
 def canAttendMeetings2(intervals: List[List[int]]) -> bool:
 
     intervals.sort(key = lambda x: x[0])
@@ -60,10 +50,10 @@ def canAttendMeetings(intervals: List[List[int]]) -> bool:
     intervals.sort(key = lambda x: x[0])
 
     for i in range(1, len(intervals)):
-        if(intervals[i-1][1] > intervals[i][0]):
+        if intervals[i-1][1] > intervals[i][0]:
             return False
-
     return True
+
 
 def movingAverage(list: List[int], num: int) -> List[float]:
 
@@ -170,17 +160,17 @@ def search(nums: List[int], target: int) -> int:
     left = 0
     right = len(nums)
 
-    while left<right :
-        mid = left + (right-left) // 2
+    while(left < right):
+        mid = left + (right-left) //2
 
-        if(nums[mid] == target):
+        if nums[mid] == target:
             return mid
-        if(nums[mid] > target):
+        if nums[mid] >= target:
             right = mid
-        else:
+        else :
             left = mid + 1
-        
     return -1
+
         
 def queue() -> List[int]:
     from collections import deque
