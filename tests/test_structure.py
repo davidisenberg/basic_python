@@ -2,7 +2,7 @@ import pytest
 import sys
 
 sys.path.insert(0, '../src')
-from structures import capital_case, movingAverage, valid_parens, canAttendMeetings, \
+from structures import capital_case, movingAverage, ocean_view, valid_parens, canAttendMeetings, \
                        heap, islands, search, queue, TreeNode, DiameterCalc, in_order_traversal
 from typing import Optional, List
 
@@ -86,3 +86,14 @@ def test_diameter_tree() -> int:
 def test_inorder() -> List[int]:
     root = create_tree()
     assert in_order_traversal(root) == [3,5,7,8,9,10,12]
+
+@pytest.mark.parametrize("heights,views", [
+    ([4, 3, 2 , 1], [0,1,2,3]),
+    ([1, 2, 3, 4], [0,1,2,3]),
+    ([3, 2, 1, 2, 3], [0,4]),
+    ([3, 2, 5, 2, 3], [0,2,4])
+])
+
+def test_view(heights, views):
+    assert ocean_view(heights) == views
+    

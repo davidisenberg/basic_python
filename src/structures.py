@@ -82,23 +82,20 @@ def heap2() -> List[int]:
     #3 smallest - return 5,7,8
 
     import heapq
-   
     heapq.heapify(li)
 
-    
     result.append(li[0])
-    val = heapq.heappop(li)
-    result.append(val)
 
-    heapq.heappush(li,2)
+    result.append(heapq.heappop(li))
 
-    val = heapq.heappop(li)
-    result.append(val)
+    heapq.heappush(li,1)
 
-    val = heapq.heappop(li)
-    result.append(val)
-
+    result.append(heapq.heappop(li))
+    result.append(heapq.heappop(li))
     result.append(heapq.nsmallest(3,li))
+
+    return result
+
 
     return result
 
@@ -160,14 +157,15 @@ def search(nums: List[int], target: int) -> int:
     left = 0
     right = len(nums)
 
-    while(left < right):
+    while left < right:
         mid = left + (right-left) //2
-
+        
         if nums[mid] == target:
             return mid
-        if nums[mid] >= target:
+
+        if nums[mid] > target:
             right = mid
-        else :
+        else:
             left = mid + 1
     return -1
 
@@ -240,5 +238,28 @@ def in_order_traversal(root: Optional[TreeNode]) -> List[int]:
         if root.right: traverse(root.right)
     if root: traverse(root)
     return res
+
+def ocean_view(heights: List[int]) -> List[int]:
+
+    left_view = 0
+    right_view = 0
+    left_list = []
+    right_list = []
+    already_there = set()
+
+    for i in range(0,len(heights)):
+        if heights[i] > left_view:
+            left_list.append(i)
+            left_view = heights[i]
+            already_there.add(i)
+    for i in range(len(heights)-1,-1,-1):
+        if i in already_there:
+            break
+        if heights[i] > right_view:
+            right_list.append(i)
+            right_view = heights[i]
+    right_list.reverse()
+    left_list.extend(right_list)
+    return left_list
 
 
