@@ -23,18 +23,18 @@ def valid_parens(input: str) -> bool:
     from collections import deque
 
     stack = deque()
-    keys = {"}":"{","]":"[",")":"("}
+    dict = {"}":"{","]":"[",")":"("}
 
     for s in input:
-        if s in keys:
-            if len(stack)==0:
+        if s in dict:
+            if len(stack) == 0:
                 return False
-            if stack[-1] != keys[s]:
+            if stack[-1] != dict[s]:
                 return False
             stack.pop()
         else:
             stack.append(s)
-    return len(stack)==0
+    return len(stack) == 0
 
 def canAttendMeetings2(intervals: List[List[int]]) -> bool:
 
@@ -159,25 +159,25 @@ def search(nums: List[int], target: int) -> int:
 
     while left < right:
         mid = left + (right-left) //2
-        
+
         if nums[mid] == target:
             return mid
 
         if nums[mid] > target:
             right = mid
-        else:
-            left = mid + 1
-    return -1
 
+        else:
+            left = mid+1
+    return -1
         
-def queue() -> List[int]:
+def queue2() -> List[int]:
     from collections import deque
     result = []
     queue = deque()
 
     #add 1,2 to queue
     #remove first 1
-    #extend [ 4 5]
+    #extend [ 3 4]
     #remove first 2
 
 
@@ -187,6 +187,32 @@ def queue() -> List[int]:
     queue.extend([3,4])
     result.append(queue.popleft())
     result.append(queue.popleft())
+
+    return result
+
+def queue() -> List[int]:
+  
+    result = []
+
+    from collections import deque
+
+    queue = deque()
+
+    queue.append(1)
+    queue.append(2)
+    result.append(queue.popleft())
+    queue.extend([3,4])
+    result.append(queue.popleft())
+    result.append(queue.popleft())
+    
+
+
+    #add 1,2 to queue
+    #remove first 1
+    #extend [ 3 4]
+    #remove first 2
+
+
 
     return result
     
@@ -228,7 +254,7 @@ def in_order_traversal_2(root: Optional[TreeNode]) -> List[int]:
     
     return in_order_traversal(root.left) + [root.val] + in_order_traversal(root.right) if root else []
 
-def in_order_traversal(root: Optional[TreeNode]) -> List[int]:
+def in_order_traversal2(root: Optional[TreeNode]) -> List[int]:
     
     res = []
     def traverse(root: Optional[TreeNode]):
@@ -239,7 +265,21 @@ def in_order_traversal(root: Optional[TreeNode]) -> List[int]:
     if root: traverse(root)
     return res
 
-def ocean_view(heights: List[int]) -> List[int]:
+def in_order_traversal(root: Optional[TreeNode]) -> List[int]:
+    
+    res = []
+    def traversal(root: Optional[TreeNode]):
+        if not root:
+            return
+
+        if root.left: traversal(root.left)
+        res.append(root.val)
+        if root.right: traversal(root.right)
+    traversal(root)
+    return res
+
+
+def ocean_view2(heights: List[int]) -> List[int]:
 
     left_view = 0
     right_view = 0
@@ -260,6 +300,36 @@ def ocean_view(heights: List[int]) -> List[int]:
             right_view = heights[i]
     right_list.reverse()
     left_list.extend(right_list)
+    return left_list
+
+def ocean_view(heights: List[int]) -> List[int]:
+
+    left_list = []
+    right_list = []
+    max_height = 0
+
+    items = set()
+    
+
+    for i in range(0, len(heights)):
+        height = heights[i]
+        if height > max_height:
+            max_height = height
+            left_list.append(i)
+            items.add(i)
+    
+    max_height=0
+    for i in range(len(heights)-1,-1,-1):
+        if i in items:
+            break
+        height = heights[i]
+        if height > max_height:
+            max_height = height
+            right_list.append(i)
+    
+    right_list.reverse()
+    left_list.extend(right_list)
+    
     return left_list
 
 
