@@ -4,6 +4,10 @@ import sender
 
 app = Flask(__name__)
 
+@app.route('/')
+def hello():
+    return "David says hello"
+
 @app.route('/send/')
 def send():
     username = request.args.get('user')
