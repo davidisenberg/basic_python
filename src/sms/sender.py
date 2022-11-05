@@ -7,7 +7,7 @@ from twilio.rest import Client
 # Created API Key SK771f8a8e2cc65eee00220c112495c55e and stored the secret in Config. See: https://www.twilio.com/console/runtime/api-keys/SK771f8a8e2cc65eee00220c112495c55e
 # twilio-cli configuration saved to "C:\Users\david\.twilio-cli\config.json"
 # Saved My first Twilio account.
-#  » You don't have any active profile set, run "twilio profiles:use" to set a profile as active
+#  You don't have any active profile set, run "twilio profiles:use" to set a profile as active
 
 # Find your Account SID and Auth Token at twilio.com/console
 # and set the environment variables. See http://twil.io/secure
