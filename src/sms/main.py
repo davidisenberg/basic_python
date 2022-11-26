@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import request
+from flask import Flask, request, render_template
 import sender
 import recipients
 
@@ -25,12 +24,13 @@ def send():
 
     for to in recipient_list:
         try:
+            #print("would have sent")
             sender.send_message(message,to)
             
         except Exception as e:
             return "failed to send: " + str(e)
         
-        return "sent message"
+    return render_template('./response.html')
 
 if __name__ == '__main__':
     app.run()

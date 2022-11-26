@@ -38,7 +38,8 @@ To deploy:
     git pull -v
     davidisenberg
     copy the token that's on your c:
-
+    in pythonanywhere go to 'web' and reload david.isenberg@pythonanywhere
     
+
 
 
