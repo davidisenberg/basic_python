@@ -1,7 +1,7 @@
 import requests
   
 # api-endpoint
-URL = "http://davidisenberg.pythonanywhere.com/send/user=nothingbutnet&message=Daily RFB"
+URL = "http://davidisenberg.pythonanywhere.com/send?user=nothingbutnet&message=Daily RFB"
   
 # location given here
 #location = "delhi technological university"
