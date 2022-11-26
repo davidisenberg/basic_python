@@ -29,7 +29,8 @@ def send():
             
         except Exception as e:
             return "failed to send: " + str(e)
-
+        
+        return "sent message"
 
 if __name__ == '__main__':
     app.run()
