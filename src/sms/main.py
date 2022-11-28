@@ -10,6 +10,8 @@ from datetime import timedelta
 
 
 app = Flask(__name__)
+app.secret_key = 'super secret key'
+app.config['SESSION_TYPE'] = 'filesystem'
 
 # flask-login
 #https://mulgrew.me/posts/session-timeout-flask.html
@@ -117,8 +119,7 @@ if __name__ == '__main__':
     # in production settings, and use a separate file or environment variables
     # to manage the secret key!
     # https://stackoverflow.com/questions/26080872/secret-key-not-set-in-flask-session-using-the-flask-session-extension
-    app.secret_key = 'super secret key'
-    app.config['SESSION_TYPE'] = 'filesystem'
+
 
     #app.debug = True
     app.run()
