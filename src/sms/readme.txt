@@ -20,15 +20,26 @@ Phase 2
 		This could be better because it's easier for me to control and deploy new changes.
 		is this much better than using life360 to track? i would say no...
 			but it is a reasonable feature since life360 takes up so much battery?
-Phase 3
+	should it save
+
+	Expand out to others
+		In order to do this, you have to either
+			1) pay for a real twilio acount that can send to anyone
+			2) handle your own messaging app
+				to do this the first steps would be:
+				1) create server that handles websockets
+					message is: from
+
 	Log in and user info
 		Logging in with a user/password is incredibly painful for this audience. Could be a 'register device' thing instead. 
 		So for a given device you can set up your info 
 		It is going to be much better as an app since you'll  be able to select contacts
 
-		Just like whatsapp, all done with only phone number. Verify phone with pin code sent. But this is because it's an app. When it's a website, you don't know who's accessing. 
+		Just like whatsapp, all done with only phone number. Verify phone with pin code sent. But this is because it's an app. 
+		When it's a website, you don't know who's accessing. 
 
-		Clearly an app is necessary for this to really work well. In the meantime though, you can create a simple website to see if it's useful. Can do with cookies.
+		Clearly an app is necessary for this to really work well. In the meantime though, you can create a simple website to see if 
+		it's useful. Can do with cookies.
 
 	So flow is:
 	Check cookie, if not there, allow registration, else just have buttons. use flask session to control. set timedelta to infinite
@@ -36,7 +47,7 @@ Phase 3
 	I can restrict to certain numbers just for now so a hacker couldn't get me sending millions of messages.
 
 
-
+  call uber home!
 	
 	
 

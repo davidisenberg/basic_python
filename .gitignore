@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+#app_specific
+*api_key.py
+*.duckdb
+*.db
+*.duckdb.wal
+*.db.wal
+*.recipients.py
+*.rfb.py
+
 # Distribution / packaging
 .Python
 build/

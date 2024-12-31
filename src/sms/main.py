@@ -3,6 +3,7 @@ import sender
 import recipients
 from flask_login import LoginManager, UserMixin, \
                                 login_required, login_user, logout_user, current_user
+from sms_api_key import get_secret_key, get_recipients
 
 from datetime import timedelta
 
@@ -10,7 +11,7 @@ from datetime import timedelta
 
 
 app = Flask(__name__)
-app.secret_key = 'super secret key'
+app.secret_key = get_secret_key()
 app.config['SESSION_TYPE'] = 'filesystem'
 
 # flask-login
@@ -41,7 +42,7 @@ def send():
     username = request.args.get('user')
     message = request.args.get('message')
 
-    recipient_list = recipients.get_recipients(username)
+    recipient_list = get_recipients(username)
     if len(recipient_list) == 0:
         return "invalid username"
 

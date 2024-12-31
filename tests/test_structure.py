@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, '../src')
 from structures import capital_case, movingAverage, ocean_view, valid_parens, canAttendMeetings, \
-                       heap, islands, search, queue, TreeNode, DiameterCalc, in_order_traversal
+                       heap, islands, search, queue, TreeNode, DiameterCalc, in_order_traversal, merge, merge_sort, two_sum, max_profit
 from typing import Optional, List
 
 
@@ -12,7 +12,8 @@ from typing import Optional, List
     ("}{", False),
     ("())", False),
     ("[]{}()", True),
-    ("()[", False)
+    ("()[", False),
+    ("(})[]", False)
 ])
 
 def test_parens(input, expected):
@@ -27,7 +28,8 @@ def test_meeting_rooms(intervals_start_end, expected):
     assert  canAttendMeetings(intervals_start_end) == expected  
 
 @pytest.mark.parametrize("list, num, expected", [
-    ([1,2,3,4,5,6],2, [1.5,2.5,3.5,4.5,5.5])
+    ([1,2,3,4,5,6],2, [1.5,2.5,3.5,4.5,5.5]),
+    ([1,2,3,4,5,6],3, [2,3,4,5])
 ])
 
 def test_moving_average(list, num, expected):
@@ -42,12 +44,23 @@ def test_queue():
 def test_capital_case():
     assert capital_case('semaphore') == 'Semaphore'
 
-def test_islands():
-    world = [[ 1, 0, 0, 0],
-             [ 1, 1, 0, 1],
-             [ 0, 1, 0, 1],
-             [ 1, 0, 1, 0]]
-    assert islands(world) == 4
+@pytest.mark.parametrize("world,num_islands", [
+    ([  [ 1, 0, 0, 0],
+        [ 1, 1, 0, 1],
+        [ 0, 1, 0, 1],
+        [ 1, 0, 1, 0]], 4),
+    ([  [ 1, 0, 0, 0],
+        [ 1, 1, 0, 1],
+        [ 0, 1, 1, 1],
+        [ 1, 0, 0, 0]],2)
+])
+
+def test_islands(world, num_islands):
+    # world = [[ 1, 0, 0, 0],
+    #          [ 1, 1, 0, 1],
+    #          [ 0, 1, 0, 1],
+    #          [ 1, 0, 1, 0]]
+    assert islands(world) == num_islands
 
 
 @pytest.mark.parametrize("search_list,search_val, search_expected", [
@@ -97,3 +110,50 @@ def test_inorder() -> List[int]:
 def test_view(heights, views):
     assert ocean_view(heights) == views
     
+
+@pytest.mark.parametrize("listA, listB , merged", [
+    ([0, 2],[1,3], [0,1,2,3]),
+    ([0, 2,4],[1,3], [0,1,2,3,4]),
+    ([7],[1,3, 10], [1,3,7,10]),
+    ([],[1,3,10], [1,3,10]),
+    ([4],[], [4]),
+    ([],[], []),
+    ([1,2,3],[4,5,6], [1,2,3,4,5,6]),
+    ([4,5,6],[1,2,3], [1,2,3,4,5,6]),
+
+])
+
+def test_merge(listA, listB, merged):
+    assert merge(listA, listB) == merged
+
+@pytest.mark.parametrize("list, sorted", [
+    ([6, 8,3,5], [3,5,6,8]),
+    ([6, 8,3,5,7], [3,5,6,7,8]),
+    ([2,1], [1,2]),
+    ([5], [5]),
+    ([], [])    
+
+])
+
+def test_merge_sort(list, sorted):
+    assert merge_sort(list) == sorted
+
+
+@pytest.mark.parametrize("list, target, twosumindices", [
+    ([2,4,6,7,10],9, [0,3]),
+    ([2,4,6,7,10],16, [2,4]),
+
+])
+
+def test_two_sum(list, target, twosumindices):
+    assert two_sum(list, target) == twosumindices
+
+
+@pytest.mark.parametrize("list, profit", [
+    ([5,3,1,4,10,2,12],11),
+    ([5,3,1,4,10,2],9),
+
+])
+
+def test_max_profit(list, profit):
+    assert max_profit(list) == profit
