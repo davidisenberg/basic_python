@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="(link unavailable)">
+<Document>
+<name>My Map</name>
+<description>Three locations marked on a map with different colors</description>
+<Style id="redStyle">
+<IconStyle>
+<color>ff0000ff</color>
+<scale>1.1</scale>
+<Icon>
+<href>(link unavailable)</href>
+</Icon>
+</IconStyle>
+</Style>
+<Style id="greenStyle">
+<IconStyle>
+<color>00ff00ff</color>
+<scale>1.1</scale>
+<Icon>
+<href>(link unavailable)</href>
+</Icon>
+</IconStyle>
+</Style>
+<Style id="blueStyle">
+<IconStyle>
+<color>0000ffff</color>
+<scale>1.1</scale>
+<Icon>
+<href>(link unavailable)</href>
+</Icon>
+</IconStyle>
+</Style>
+<Placemark>
+<name>Location 1</name>
+<description>San Francisco, CA</description>
+<styleUrl>#redStyle</styleUrl>
+<Point>
+<coordinates>-122.084051,37.385348,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name>Location 2</name>
+<description>New York City, NY</description>
+<styleUrl>#greenStyle</styleUrl>
+<Point>
+<coordinates>-74.0059,40.7128,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name>Location 3</name>
+<description>Los Angeles, CA</description>
+<styleUrl>#blueStyle</styleUrl>
+<Point>
+<coordinates>-118.2437,34.0522,0</coordinates>
+</Point>
+</Placemark>
+</Document>
+</kml>
