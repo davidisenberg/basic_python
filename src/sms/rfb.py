@@ -1,7 +1,8 @@
 import requests
-  
+from sms_api_key import get_rfb_path
+
 # api-endpoint
-URL = "http://davidisenberg.pythonanywhere.com/send?user=nothingbutnet&message=Daily RFB"
+URL = get_rfb_path()
   
 # location given here
 #location = "delhi technological university"
