@@ -1,0 +1,104 @@
+import sys
+import os
+import json
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
+os.chdir(os.path.join(os.path.dirname(__file__), "../../src/birds"))
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from geopy.geocoders import Nominatim
+from birds.tb_utils import get_tb_goldens, stream_tb_goldens
+from birds.tb_db import get_location, set_location, normalize_name
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+geocoder = Nominatim(user_agent="top-birding-app")
+
+if __name__ == "__main__":
+    import argparse
+    import uvicorn
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--reset-cache', action='store_true', help='Clear all cached data including drive times')
+    parser.add_argument('--reset-birds', action='store_true', help='Clear bird data only, keep drive times and locations')
+    args = parser.parse_args()
+
+    if args.reset_cache:
+        from birds.tb_db import start_over_hotspots
+        start_over_hotspots()
+        print("Full cache cleared.")
+    elif args.reset_birds:
+        from birds.tb_db import reset_birds_cache
+        reset_birds_cache()
+        print("Bird cache cleared (drive times preserved).")
+
+    uvicorn.run("main:app", host="127.0.0.1", port=8000)
+
+
+def _resolve_location(location: str):
+    norm = normalize_name(location)
+    cached = get_location(norm)
+    if cached:
+        print(f"location cache hit: {norm}")
+        return norm, cached[0], cached[1]
+    geo = geocoder.geocode(location)
+    if geo is None:
+        return None, None, None
+    lat, lon = geo.latitude, geo.longitude
+    set_location(norm, lat, lon)
+    print(f"geocoded and cached: {norm} -> {lat}, {lon}")
+    return norm, lat, lon
+
+
+@app.get("/api/goldens/stream")
+def stream_goldens(
+    location: str = Query(..., description="Location name, e.g. 'Hoboken NJ'"),
+    max_num: int = Query(20, ge=1, le=200),
+):
+    norm, lat, lon = _resolve_location(location)
+    if norm is None:
+        raise HTTPException(status_code=404, detail=f"Could not geocode '{location}'")
+
+    def generate():
+        try:
+            for event_type, data in stream_tb_goldens(norm, lat, lon, max_num):
+                if event_type == 'progress':
+                    yield f"data: {json.dumps(data)}\n\n"
+                elif event_type == 'preliminary':
+                    records = data.to_dict(orient='records')
+                    payload = {'preliminary': True, 'location': location, 'lat': lat, 'lon': lon, 'results': records}
+                    yield f"data: {json.dumps(payload)}\n\n"
+                else:
+                    records = data.to_dict(orient='records')
+                    payload = {'done': True, 'location': location, 'lat': lat, 'lon': lon, 'results': records}
+                    yield f"data: {json.dumps(payload)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/goldens")
+def get_goldens(
+    location: str = Query(..., description="Location name, e.g. 'Hoboken NJ'"),
+    max_num: int = Query(20, ge=1, le=200),
+):
+    norm, lat, lon = _resolve_location(location)
+    if norm is None:
+        raise HTTPException(status_code=404, detail=f"Could not geocode '{location}'")
+
+    df = get_tb_goldens(norm, lat, lon, max_num)
+    return {"location": location, "lat": lat, "lon": lon, "results": df.to_dict(orient="records")}
