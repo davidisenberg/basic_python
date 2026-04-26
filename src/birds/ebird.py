@@ -1,11 +1,20 @@
+import os
 import requests
 import pandas as pd
-from .ebird_api_key import get_api_key
 
 #Documentation - https://documenter.getpostman.com/view/664302/S1ENwy59#674e81c1-6a0c-4836-8a7e-6ea1fe8e6677
 
-# Set API token and URL
-api_token = get_api_key()
+def _load_api_key():
+    key = os.environ.get('EBIRD_API_KEY')
+    if key:
+        return key
+    try:
+        from .ebird_api_key import get_api_key
+        return get_api_key()
+    except ImportError:
+        raise RuntimeError("Set the EBIRD_API_KEY environment variable")
+
+api_token = _load_api_key()
 
 def get_ebird_taxonomy():
     url =  'https://api.ebird.org/v2/ref/taxonomy/ebird?fmt=json'

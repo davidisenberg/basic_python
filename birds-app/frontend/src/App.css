@@ -45,6 +45,31 @@ h1 { font-size: 2rem; font-weight: 700; }
 .search-form button:hover:not(:disabled) { background: #2563eb; }
 .search-form button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.format-error {
+  text-align: center;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin: -0.75rem 0 0.75rem;
+}
+
+.advanced-toggle {
+  text-align: center;
+  margin: -0.75rem 0 1.25rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.link-btn:hover { color: #2563eb; }
+.link-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .status {
   text-align: center;
   color: #555;

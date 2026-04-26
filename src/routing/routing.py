@@ -1,7 +1,8 @@
+import os
 import requests
 import time
 
-ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg4MTg3MTJjMjEzYzQxOGVhNzYxOTQxMjhlNzNlMDhkIiwiaCI6Im11cm11cjY0In0="
+ORS_API_KEY = os.environ.get('ORS_API_KEY', 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg4MTg3MTJjMjEzYzQxOGVhNzYxOTQxMjhlNzNlMDhkIiwiaCI6Im11cm11cjY0In0=')  # rotate and set via env var
 ORS_URL = "https://api.openrouteservice.org/v2/directions/driving-car"
 
 

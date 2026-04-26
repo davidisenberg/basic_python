@@ -253,19 +253,35 @@ function ProgressBar({ progress }) {
   )
 }
 
+const SIMPLE_RE = /^\d{5}$|^[A-Za-z]{3}$/
+
 export default function App() {
-  const [input, setInput]     = useState('Hoboken, NJ')
-  const [maxNum, setMaxNum]   = useState(20)
-  const [loading, setLoading] = useState(false)
+  const [input, setInput]       = useState('')
+  const [maxNum, setMaxNum]     = useState(20)
+  const [loading, setLoading]   = useState(false)
   const [progress, setProgress] = useState(null)
-  const [error, setError]     = useState(null)
-  const [data, setData]       = useState(null)
-  const [weights, setWeights] = useState(DEFAULT_WEIGHTS)
+  const [error, setError]       = useState(null)
+  const [data, setData]         = useState(null)
+  const [weights, setWeights]   = useState(DEFAULT_WEIGHTS)
+  const [advanced, setAdvanced] = useState(false)
+  const [formatError, setFormatError] = useState(null)
   const esRef = useRef(null)
+
+  const toggleAdvanced = useCallback(() => {
+    setAdvanced(a => !a)
+    setFormatError(null)
+    setInput('')
+  }, [])
 
   const search = useCallback((e) => {
     e.preventDefault()
     if (!input.trim()) return
+
+    if (!advanced && !SIMPLE_RE.test(input.trim())) {
+      setFormatError('Enter a 5-digit ZIP code or 3-letter airport code (e.g. 07030 or EWR)')
+      return
+    }
+    setFormatError(null)
 
     if (esRef.current) esRef.current.close()
 
@@ -316,9 +332,9 @@ export default function App() {
       <form className="search-form" onSubmit={search}>
         <input
           type="text"
-          placeholder="Enter a location, e.g. Hoboken NJ"
+          placeholder={advanced ? 'Enter any address or city, e.g. Hoboken NJ' : 'ZIP or airport code, e.g. 07030 or EWR'}
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={e => { setInput(e.target.value); setFormatError(null) }}
           disabled={loading}
         />
         <input
@@ -335,6 +351,12 @@ export default function App() {
           {loading ? 'Searching…' : 'Search'}
         </button>
       </form>
+      {formatError && <p className="format-error">{formatError}</p>}
+      <p className="advanced-toggle">
+        <button type="button" className="link-btn" onClick={toggleAdvanced} disabled={loading}>
+          {advanced ? '← Simple (ZIP / airport)' : 'Advanced: enter any address'}
+        </button>
+      </p>
 
       {loading && <ProgressBar progress={progress} />}
       {error   && <div className="status error">{error}</div>}

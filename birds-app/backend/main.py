@@ -1,16 +1,21 @@
 import sys
 import os
+import re
 import json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 os.chdir(os.path.join(os.path.dirname(__file__), "../../src/birds"))
 
+import airportsdata
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from geopy.geocoders import Nominatim
 from birds.tb_utils import get_tb_goldens, stream_tb_goldens
 from birds.tb_db import get_location, set_location, normalize_name
+
+_airports = airportsdata.load('IATA')
 
 app = FastAPI()
 
@@ -41,7 +46,8 @@ if __name__ == "__main__":
         reset_birds_cache()
         print("Bird cache cleared (drive times preserved).")
 
-    uvicorn.run("main:app", host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
 
 
 def _resolve_location(location: str):
@@ -50,7 +56,20 @@ def _resolve_location(location: str):
     if cached:
         print(f"location cache hit: {norm}")
         return norm, cached[0], cached[1]
-    geo = geocoder.geocode(location)
+
+    # Airport code: exactly 3 letters
+    code = location.strip().upper()
+    if re.match(r'^[A-Z]{3}$', code) and code in _airports:
+        ap = _airports[code]
+        lat, lon = float(ap['lat']), float(ap['lon'])
+        set_location(norm, lat, lon)
+        print(f"airport lookup: {code} -> {lat}, {lon}")
+        return norm, lat, lon
+
+    # Zip code or freeform address: use Nominatim
+    # Restrict 5-digit codes to the US — bare zip codes are ambiguous internationally
+    is_zip = bool(re.match(r'^\d{5}$', location.strip()))
+    geo = geocoder.geocode(location, country_codes='us' if is_zip else None)
     if geo is None:
         return None, None, None
     lat, lon = geo.latitude, geo.longitude
@@ -102,3 +121,10 @@ def get_goldens(
 
     df = get_tb_goldens(norm, lat, lon, max_num)
     return {"location": location, "lat": lat, "lon": lon, "results": df.to_dict(orient="records")}
+
+
+# Serve the built React frontend — must be mounted last so API routes take priority
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+_frontend_dist = os.path.join(_BACKEND_DIR, "../frontend/dist")
+if os.path.isdir(_frontend_dist):
+    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="static")

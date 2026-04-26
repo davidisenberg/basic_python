@@ -1,9 +1,10 @@
+import os
 import duckdb
 import pandas as pd
 import datetime
 
 
-con = duckdb.connect('top_birding.db')
+con = duckdb.connect(os.environ.get('DB_PATH', 'top_birding.db'))
 
 
 def normalize_name(name: str) -> str:

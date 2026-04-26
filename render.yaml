@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: birds-app
+    runtime: python
+    buildCommand: >
+      pip install -r birds-app/backend/requirements.txt &&
+      cd birds-app/frontend && npm install && npm run build
+    startCommand: cd birds-app/backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: EBIRD_API_KEY
+        sync: false
+      - key: ORS_API_KEY
+        sync: false
+      - key: DB_PATH
+        value: /data/top_birding.db
+    disk:
+      name: birding-db
+      mountPath: /data
+      sizeGB: 1
