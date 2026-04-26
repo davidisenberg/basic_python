@@ -168,15 +168,16 @@ def invalidate_location(loc_name: str):
 
 
 def get_local_hotspots(loc_name: str):
-    return q("SELECT * FROM hotspots WHERE loc_name = '" + loc_name + "'")
+    return con.execute("SELECT * FROM hotspots WHERE loc_name = ?", [loc_name]).df()
 
 
 def get_optimized_hotspots(loc_name: str, max_num: int):
-    return q(
-        "SELECT * FROM hotspots WHERE loc_name = '" + loc_name + "' "
+    return con.execute(
+        "SELECT * FROM hotspots WHERE loc_name = ? "
         "AND (numSpeciesAllTime > 150 OR distance_miles < 2) "
-        "ORDER BY rank DESC LIMIT " + str(max_num)
-    )
+        "ORDER BY rank DESC LIMIT ?",
+        [loc_name, int(max_num)]
+    ).df()
 
 
 #------------
@@ -185,12 +186,12 @@ def get_optimized_hotspots(loc_name: str, max_num: int):
 def does_golden_exist(loc_name: str):
     if not does_exist('goldens'):
         return False
-    df = q("SELECT Count(*) FROM goldens WHERE loc_name = '" + loc_name + "'")
-    return df.iloc[0, 0] > 0
+    rows = con.execute("SELECT Count(*) FROM goldens WHERE loc_name = ?", [loc_name]).fetchall()
+    return rows[0][0] > 0
 
 
 def get_local_goldens(loc_name: str):
-    return q("SELECT * FROM goldens WHERE loc_name = '" + loc_name + "'")
+    return con.execute("SELECT * FROM goldens WHERE loc_name = ?", [loc_name]).df()
 
 
 #------------
