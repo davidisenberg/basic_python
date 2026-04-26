@@ -44,6 +44,19 @@ def append_table(table: str, df):
 
 
 def _migrate():
+    if not does_exist('searches'):
+        con.execute("""
+            CREATE TABLE searches (
+                searched_at TIMESTAMP,
+                location VARCHAR,
+                location_type VARCHAR,
+                lat DOUBLE,
+                lon DOUBLE,
+                max_num INT
+            )
+        """)
+        con.commit()
+
     if not does_exist('locations'):
         con.execute("""
             CREATE TABLE locations (
@@ -147,6 +160,17 @@ def set_duration(loc_name: str, lat, long, duration):
                 [loc_name, float(lat), float(long)])
     con.execute("INSERT INTO drive_times VALUES (?, ?, ?, ?)",
                 [loc_name, float(lat), float(long), float(duration)])
+    con.commit()
+
+
+#------------
+# SEARCHES
+#------------
+def log_search(location: str, location_type: str, lat: float, lon: float, max_num: int):
+    con.execute(
+        "INSERT INTO searches VALUES (?, ?, ?, ?, ?, ?)",
+        [datetime.datetime.utcnow(), location, location_type, lat, lon, max_num]
+    )
     con.commit()
 
 

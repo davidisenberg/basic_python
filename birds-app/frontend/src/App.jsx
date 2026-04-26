@@ -162,7 +162,43 @@ function WeightsPanel({ weights, onChange }) {
   )
 }
 
-function HotspotGrid({ results, weights }) {
+const NAME_FIELDS = [
+  { field: 'highValueNames', label: 'Migrants'   },
+  { field: 'raptorNames',    label: 'Raptors'    },
+  { field: 'warblerNames',   label: 'Warblers'   },
+  { field: 'shorebirdNames', label: 'Shorebirds' },
+  { field: 'waterfowlNames', label: 'Waterfowl'  },
+]
+
+function BirdFilter({ results, selectedBird, onChange }) {
+  const groups = useMemo(() => (
+    NAME_FIELDS.map(({ field, label }) => {
+      const names = [...new Set(
+        results.flatMap(row => row[field] ? row[field].split(', ').filter(Boolean) : [])
+      )].sort()
+      return { label, names }
+    }).filter(g => g.names.length > 0)
+  ), [results])
+
+  return (
+    <div className="bird-filter">
+      <label>Filter by bird</label>
+      <select value={selectedBird || ''} onChange={e => onChange(e.target.value || null)}>
+        <option value="">All species</option>
+        {groups.map(({ label, names }) => (
+          <optgroup key={label} label={label}>
+            {names.map(name => <option key={name} value={name}>{name}</option>)}
+          </optgroup>
+        ))}
+      </select>
+      {selectedBird && (
+        <button type="button" className="link-btn" onClick={() => onChange(null)}>clear</button>
+      )}
+    </div>
+  )
+}
+
+function HotspotGrid({ results, weights, selectedBird }) {
   const [sort, setSort] = useState({ key: 'score', dir: 'desc' })
 
   const scored = useMemo(() => applyScores(results, weights), [results, weights])
@@ -175,7 +211,15 @@ function HotspotGrid({ results, weights }) {
     )
   }
 
-  const sorted = [...scored].sort((a, b) => {
+  const filtered = useMemo(() => (
+    selectedBird
+      ? scored.filter(row => NAME_FIELDS.some(({ field }) =>
+          row[field]?.split(', ').includes(selectedBird)
+        ))
+      : scored
+  ), [scored, selectedBird])
+
+  const sorted = [...filtered].sort((a, b) => {
     const av = a[sort.key]
     const bv = b[sort.key]
     if (av == null) return 1
@@ -262,9 +306,10 @@ export default function App() {
   const [progress, setProgress] = useState(null)
   const [error, setError]       = useState(null)
   const [data, setData]         = useState(null)
-  const [weights, setWeights]   = useState(DEFAULT_WEIGHTS)
-  const [advanced, setAdvanced] = useState(false)
+  const [weights, setWeights]       = useState(DEFAULT_WEIGHTS)
+  const [advanced, setAdvanced]     = useState(false)
   const [formatError, setFormatError] = useState(null)
+  const [selectedBird, setSelectedBird] = useState(null)
   const esRef = useRef(null)
 
   const toggleAdvanced = useCallback(() => {
@@ -283,12 +328,18 @@ export default function App() {
     }
     setFormatError(null)
 
+    if (maxNum > 50) {
+      const ok = window.confirm(`Are you sure you want to search for ${maxNum} hotspots? This will take some time to fetch.`)
+      if (!ok) return
+    }
+
     if (esRef.current) esRef.current.close()
 
     setLoading(true)
     setProgress(null)
     setError(null)
     setData(null)
+    setSelectedBird(null)
 
     const url = `/api/goldens/stream?location=${encodeURIComponent(input.trim())}&max_num=${maxNum}`
     const es = new EventSource(url)
@@ -368,9 +419,10 @@ export default function App() {
               {data.results.length} hotspots near <strong>{data.location}</strong>
               {' '}({data.lat.toFixed(4)}, {data.lon.toFixed(4)})
             </p>
+            <BirdFilter results={data.results} selectedBird={selectedBird} onChange={setSelectedBird} />
             <WeightsPanel weights={weights} onChange={setWeights} />
           </div>
-          <HotspotGrid results={data.results} weights={weights} />
+          <HotspotGrid results={data.results} weights={weights} selectedBird={selectedBird} />
         </>
       )}
     </div>

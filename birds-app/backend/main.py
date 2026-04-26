@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from geopy.geocoders import Nominatim
 from birds.tb_utils import get_tb_goldens, stream_tb_goldens
-from birds.tb_db import get_location, set_location, normalize_name
+from birds.tb_db import get_location, set_location, normalize_name, log_search
 
 _airports = airportsdata.load('IATA')
 
@@ -48,6 +48,14 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+
+
+def _location_type(location: str) -> str:
+    if re.match(r'^\d{5}$', location.strip()):
+        return 'zip'
+    if re.match(r'^[A-Za-z]{3}$', location.strip()):
+        return 'airport'
+    return 'freeform'
 
 
 def _resolve_location(location: str):
@@ -86,6 +94,8 @@ def stream_goldens(
     norm, lat, lon = _resolve_location(location)
     if norm is None:
         raise HTTPException(status_code=404, detail=f"Could not geocode '{location}'")
+
+    log_search(location, _location_type(location), lat, lon, max_num)
 
     def generate():
         try:
