@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import './App.css'
 
 const COLUMNS = [
@@ -133,12 +133,12 @@ function WeightsPanel({ weights, onChange }) {
   const isDefault = fields.every(f => weights[f.key] === DEFAULT_WEIGHTS[f.key])
 
   return (
-    <div className="weights-panel">
-      <button className="weights-toggle" onClick={() => setOpen(o => !o)}>
+    <div className="panel-control">
+      <button className="panel-toggle" onClick={() => setOpen(o => !o)}>
         ⚖️ Weights {open ? '▲' : '▼'}
       </button>
       {open && (
-        <div className="weights-grid">
+        <div className="panel-dropdown">
           {fields.map(({ key, label, min, max, step }) => (
             <div key={key} className="weight-row">
               <label>{label}</label>
@@ -162,6 +162,17 @@ function WeightsPanel({ weights, onChange }) {
   )
 }
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(`(max-width: ${breakpoint}px)`).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`)
+    const handler = e => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [breakpoint])
+  return isMobile
+}
+
 const NAME_FIELDS = [
   { field: 'highValueNames', label: 'Migrants'   },
   { field: 'raptorNames',    label: 'Raptors'    },
@@ -171,29 +182,195 @@ const NAME_FIELDS = [
 ]
 
 function BirdFilter({ results, selectedBird, onChange }) {
-  const groups = useMemo(() => (
-    NAME_FIELDS.map(({ field, label }) => {
-      const names = [...new Set(
-        results.flatMap(row => row[field] ? row[field].split(', ').filter(Boolean) : [])
-      )].sort()
-      return { label, names }
-    }).filter(g => g.names.length > 0)
-  ), [results])
+  const [open, setOpen]     = useState(false)
+  const [query, setQuery]   = useState('')
+  const inputRef            = useRef(null)
+
+  const allBirds = useMemo(() => {
+    const seen = new Map()
+    NAME_FIELDS.forEach(({ field, label }) => {
+      results.forEach(row => {
+        row[field]?.split(', ').filter(Boolean).forEach(name => {
+          if (!seen.has(name)) seen.set(name, label)
+        })
+      })
+    })
+    return [...seen.entries()].map(([name, cat]) => ({ name, cat })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [results])
+
+  const filtered = query.trim()
+    ? allBirds.filter(b => b.name.toLowerCase().includes(query.toLowerCase()))
+    : allBirds
+
+  const select = (name) => { onChange(name); setOpen(false); setQuery('') }
+  const clear  = ()     => { onChange(null); setOpen(false); setQuery('') }
+
+  const toggle = () => {
+    setOpen(o => {
+      if (!o) setTimeout(() => inputRef.current?.focus(), 0)
+      return !o
+    })
+  }
+
+  const buttonLabel = selectedBird ? `🐦 ${selectedBird}` : '🐦 Filter'
 
   return (
-    <div className="bird-filter">
-      <label>Filter by bird</label>
-      <select value={selectedBird || ''} onChange={e => onChange(e.target.value || null)}>
-        <option value="">All species</option>
-        {groups.map(({ label, names }) => (
-          <optgroup key={label} label={label}>
-            {names.map(name => <option key={name} value={name}>{name}</option>)}
-          </optgroup>
-        ))}
-      </select>
-      {selectedBird && (
-        <button type="button" className="link-btn" onClick={() => onChange(null)}>clear</button>
+    <div className="panel-control">
+      <button className="panel-toggle" onClick={toggle}>
+        {buttonLabel} {open ? '▲' : '▼'}
+      </button>
+      {open && (
+        <div className="panel-dropdown bird-filter-dropdown">
+          <input
+            ref={inputRef}
+            className="bird-search"
+            type="text"
+            placeholder="Search species…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+          <div className="bird-list">
+            {filtered.length === 0 && <div className="bird-list-empty">No matches</div>}
+            {filtered.map(({ name, cat }) => (
+              <div
+                key={name}
+                className={`bird-list-item${name === selectedBird ? ' selected' : ''}`}
+                onClick={() => select(name)}
+              >
+                <span className="bird-list-name">{name}</span>
+                <span className="bird-list-cat">{cat}</span>
+              </div>
+            ))}
+          </div>
+          {selectedBird && (
+            <button type="button" className="link-btn bird-clear" onClick={clear}>
+              Clear filter
+            </button>
+          )}
+        </div>
       )}
+    </div>
+  )
+}
+
+const CARD_SORT_OPTIONS = [
+  { key: 'score',              label: 'Score'          },
+  { key: 'numSpeciesTwoWeeks', label: 'Species (2 wk)' },
+  { key: 'numHighValue',       label: 'Migrants'       },
+  { key: 'numWarblers',        label: 'Warblers'       },
+  { key: 'numRaptors',         label: 'Raptors'        },
+  { key: 'numShorebirds',      label: 'Shorebirds'     },
+  { key: 'numWaterfowl',       label: 'Waterfowl'      },
+  { key: 'distance_miles',     label: 'Distance'       },
+  { key: 'duration2',          label: 'Drive time'     },
+]
+
+function CardTip({ label, count, names }) {
+  const [pos, setPos] = useState(null)
+  const ref = useRef(null)
+  const text = names?.split(', ').filter(Boolean).join('\n')
+
+  const show = () => {
+    if (!text) return
+    const r = ref.current.getBoundingClientRect()
+    const above = window.innerHeight - r.bottom < 160
+    setPos({ right: window.innerWidth - r.right, above, y: above ? window.innerHeight - r.top : r.bottom })
+  }
+
+  return (
+    <div className={`card-col${text ? ' has-tooltip' : ''}`} ref={ref} onMouseEnter={show} onMouseLeave={() => setPos(null)}>
+      <span className="col-label">{label}</span>
+      <span className="col-value">{count ?? 0}</span>
+      {pos && text && (
+        <div className="tooltip" style={{ position: 'fixed', right: pos.right, ...(pos.above ? { bottom: pos.y } : { top: pos.y }) }}>
+          {text}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HotspotCard({ row }) {
+  return (
+    <div className="hotspot-card">
+      <div className="card-header">
+        <a
+          className="card-name"
+          href={`https://www.google.com/maps?q=${row.lat},${row.lng}`}
+          target="_blank" rel="noreferrer"
+        >
+          {row.locName}
+        </a>
+        <span className="card-score">{row.score}</span>
+      </div>
+
+      <div className="card-meta">
+        {row.distance_miles    != null && <span>{row.distance_miles.toFixed(1)} mi</span>}
+        {row.duration2         != null && <span>{row.duration2.toFixed(1)} hrs drive</span>}
+        {row.numSpeciesAllTime != null && <span>{row.numSpeciesAllTime} species all time</span>}
+      </div>
+
+      <div className="card-data">
+        <div className="card-col">
+          <span className="col-label">Species<br/>(2 wk)</span>
+          <span className="col-value">{row.numSpeciesTwoWeeks}</span>
+        </div>
+        <div className="card-col">
+          <span className="col-label">Birds</span>
+          <span className="col-value">{row.numBirdsTwoWeeks?.toLocaleString()}</span>
+        </div>
+        <CardTip label="Migrants"   count={row.numHighValue}  names={row.highValueNames}  />
+        <CardTip label="Raptors"    count={row.numRaptors}    names={row.raptorNames}     />
+        <CardTip label="Warblers"   count={row.numWarblers}   names={row.warblerNames}    />
+        <CardTip label="Shorebirds" count={row.numShorebirds} names={row.shorebirdNames}  />
+        <CardTip label="Waterfowl"  count={row.numWaterfowl}  names={row.waterfowlNames}  />
+        <div className="card-col">
+          <span className="col-label">Checklists</span>
+          <span className="col-value">{row.numChecklists}</span>
+        </div>
+        <div className="card-col">
+          <span className="col-label">Contributors</span>
+          <span className="col-value">{row.numContributors}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HotspotCards({ results, weights, onWeightsChange, selectedBird, onBirdChange }) {
+  const [sortKey, setSortKey] = useState('score')
+
+  const scored = useMemo(() => applyScores(results, weights), [results, weights])
+
+  const filtered = useMemo(() => (
+    selectedBird
+      ? scored.filter(row => NAME_FIELDS.some(({ field }) =>
+          row[field]?.split(', ').includes(selectedBird)
+        ))
+      : scored
+  ), [scored, selectedBird])
+
+  const sorted = useMemo(() => (
+    [...filtered].sort((a, b) => {
+      const av = a[sortKey] ?? -Infinity
+      const bv = b[sortKey] ?? -Infinity
+      return bv - av
+    })
+  ), [filtered, sortKey])
+
+  return (
+    <div className="cards-container">
+      <div className="cards-sort">
+        <label>Sort by</label>
+        <select value={sortKey} onChange={e => setSortKey(e.target.value)}>
+          {CARD_SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+        </select>
+        <BirdFilter results={results} selectedBird={selectedBird} onChange={onBirdChange} />
+        <WeightsPanel weights={weights} onChange={onWeightsChange} />
+      </div>
+      <div className="cards-grid">
+        {sorted.map((row, i) => <HotspotCard key={i} row={row} />)}
+      </div>
     </div>
   )
 }
@@ -414,15 +591,17 @@ export default function App() {
 
       {data && (
         <>
-          <div className="results-header">
-            <p className="result-meta">
-              {data.results.length} hotspots near <strong>{data.location}</strong>
-              {' '}({data.lat.toFixed(4)}, {data.lon.toFixed(4)})
-            </p>
-            <BirdFilter results={data.results} selectedBird={selectedBird} onChange={setSelectedBird} />
-            <WeightsPanel weights={weights} onChange={setWeights} />
-          </div>
-          <HotspotGrid results={data.results} weights={weights} selectedBird={selectedBird} />
+          <p className="result-meta">
+            {data.results.length} hotspots near <strong>{data.location}</strong>
+            {' '}({data.lat.toFixed(4)}, {data.lon.toFixed(4)})
+          </p>
+          <HotspotCards
+            results={data.results}
+            weights={weights}
+            onWeightsChange={setWeights}
+            selectedBird={selectedBird}
+            onBirdChange={setSelectedBird}
+          />
         </>
       )}
     </div>
