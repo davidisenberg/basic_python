@@ -2,6 +2,8 @@ import sys
 import os
 import re
 import json
+import secrets
+from typing import Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 os.chdir(os.path.join(os.path.dirname(__file__), "../../src/birds"))
@@ -13,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from geopy.geocoders import Nominatim
 from birds.tb_utils import get_tb_goldens, stream_tb_goldens
-from birds.tb_db import get_location, set_location, normalize_name, log_search
+from birds.tb_db import get_location, set_location, normalize_name, log_search, get_searches, get_search_stats
 
 _airports = airportsdata.load('IATA')
 
@@ -21,10 +23,17 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "null"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+_ADMIN_KEY = os.environ.get('ADMIN_KEY', '')
+
+
+def _require_admin(key: str):
+    if not _ADMIN_KEY or not key or not secrets.compare_digest(key, _ADMIN_KEY):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 geocoder = Nominatim(user_agent="top-birding-app")
 
@@ -131,6 +140,24 @@ def get_goldens(
 
     df = get_tb_goldens(norm, lat, lon, max_num)
     return {"location": location, "lat": lat, "lon": lon, "results": df.to_dict(orient="records")}
+
+
+@app.get("/api/admin/stats")
+def admin_stats(key: str = Query(...)):
+    _require_admin(key)
+    return get_search_stats()
+
+
+@app.get("/api/admin/searches")
+def admin_searches(
+    key: str = Query(...),
+    limit: int = Query(1000, ge=1, le=5000),
+    location_type: Optional[str] = Query(None),
+):
+    _require_admin(key)
+    df = get_searches(limit, location_type)
+    df['searched_at'] = df['searched_at'].astype(str)
+    return df.to_dict(orient='records')
 
 
 # Serve the built React frontend — must be mounted last so API routes take priority

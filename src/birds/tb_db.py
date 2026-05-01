@@ -175,6 +175,42 @@ def log_search(location: str, location_type: str, lat: float, lon: float, max_nu
 
 
 #------------
+# ADMIN / USAGE
+#------------
+def get_searches(limit: int = 1000, location_type: str = None):
+    if location_type:
+        return con.execute(
+            "SELECT * FROM searches WHERE location_type = ? ORDER BY searched_at DESC LIMIT ?",
+            [location_type, limit]
+        ).df()
+    return con.execute(
+        "SELECT * FROM searches ORDER BY searched_at DESC LIMIT ?",
+        [limit]
+    ).df()
+
+
+def get_search_stats():
+    total = con.execute("SELECT COUNT(*) FROM searches").fetchone()[0]
+    by_type = con.execute(
+        "SELECT location_type, COUNT(*) as count FROM searches GROUP BY location_type ORDER BY count DESC"
+    ).df().to_dict(orient='records')
+    top_locations = con.execute(
+        "SELECT location, location_type, COUNT(*) as count FROM searches "
+        "GROUP BY location, location_type ORDER BY count DESC LIMIT 20"
+    ).df().to_dict(orient='records')
+    by_day = con.execute(
+        "SELECT CAST(searched_at AS DATE) as day, COUNT(*) as count "
+        "FROM searches GROUP BY day ORDER BY day DESC LIMIT 30"
+    ).df().to_dict(orient='records')
+    return {
+        'total': total,
+        'by_type': by_type,
+        'top_locations': top_locations,
+        'by_day': by_day,
+    }
+
+
+#------------
 # HOTSPOTS
 #------------
 def does_hotspot_exist(loc_name: str):

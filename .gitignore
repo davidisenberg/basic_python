@@ -8,6 +8,7 @@ __pycache__/
 
 #app_specific
 *api_key.py
+admin.html
 node_modules/
 .claude/settings.local.json
 *.duckdb
