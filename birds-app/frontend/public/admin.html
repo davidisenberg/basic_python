@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Birds App — Usage</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #1e293b; font-size: 14px; }
+
+  header { background: #1e3a5f; color: #fff; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.1rem; font-weight: 600; }
+
+  .config { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0.75rem 1.5rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+  .config label { font-size: 0.8rem; color: #64748b; }
+  .config input { border: 1px solid #cbd5e1; border-radius: 5px; padding: 0.35rem 0.6rem; font-size: 0.85rem; width: 280px; }
+  .config input:focus { outline: none; border-color: #3b82f6; }
+  .config button { padding: 0.35rem 1rem; background: #3b82f6; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
+  .config button:hover { background: #2563eb; }
+
+  main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+
+  .error { background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+
+  /* Stats cards */
+  .stats-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem 1.25rem; min-width: 130px; flex: 1; }
+  .stat-label { font-size: 0.75rem; color: #64748b; margin-bottom: 0.3rem; }
+  .stat-value { font-size: 1.6rem; font-weight: 700; color: #1e3a5f; }
+
+  /* Two-column layout */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+
+  .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+  .panel-head { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.6rem 1rem; font-weight: 600; font-size: 0.85rem; color: #374151; }
+
+  /* Day chart */
+  .day-chart { padding: 0.75rem 1rem; }
+  .bar-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+  .bar-date { font-size: 0.75rem; color: #64748b; width: 80px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 14px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; }
+  .bar-count { font-size: 0.75rem; color: #374151; width: 24px; text-align: right; flex-shrink: 0; }
+
+  /* Top locations table */
+  .loc-table { width: 100%; border-collapse: collapse; }
+  .loc-table th { text-align: left; padding: 0.5rem 1rem; font-size: 0.75rem; color: #64748b; font-weight: 500; border-bottom: 1px solid #f1f5f9; }
+  .loc-table td { padding: 0.4rem 1rem; border-bottom: 1px solid #f8fafc; }
+  .loc-table tr:last-child td { border-bottom: none; }
+  .loc-table tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 500; }
+  .badge-zip { background: #dbeafe; color: #1d4ed8; }
+  .badge-airport { background: #d1fae5; color: #065f46; }
+  .badge-freeform { background: #fef3c7; color: #92400e; }
+
+  /* Searches table */
+  .searches-head { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .searches-head span { font-weight: 600; font-size: 0.85rem; color: #374151; }
+  .searches-head select { font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.2rem 0.4rem; }
+  .table-wrap { overflow-x: auto; }
+  table.searches { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  table.searches th { text-align: left; padding: 0.45rem 0.75rem; background: #f8fafc; color: #64748b; font-weight: 500; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  table.searches td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #f8fafc; }
+  table.searches tbody tr:hover td { background: #f0f4ff; }
+  table.searches tbody tr:last-child td { border-bottom: none; }
+  .ts { color: #94a3b8; font-size: 0.78rem; }
+
+  .empty { padding: 2rem; text-align: center; color: #94a3b8; }
+
+  .danger-zone { background: #fff; border: 1px solid #fca5a5; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+  .danger-zone h3 { font-size: 0.85rem; color: #dc2626; margin-bottom: 0.75rem; }
+  .danger-zone .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .btn-danger { padding: 0.4rem 1rem; font-size: 0.85rem; background: #dc2626; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-warn { padding: 0.4rem 1rem; font-size: 0.85rem; background: #f59e0b; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+  .btn-warn:hover { background: #d97706; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🦅 Birds App — Usage Dashboard</h1>
+</header>
+
+<div class="config">
+  <label>Admin Key</label>
+  <input id="adminKey" type="password" placeholder="ADMIN_KEY" />
+  <button onclick="load()">Load</button>
+</div>
+
+<main>
+  <div id="error" class="error" style="display:none"></div>
+
+  <div class="stats-row" id="statsRow" style="display:none">
+    <div class="stat-card"><div class="stat-label">Total Searches</div><div class="stat-value" id="statTotal">—</div></div>
+    <div class="stat-card"><div class="stat-label">ZIP Codes</div><div class="stat-value" id="statZip">—</div></div>
+    <div class="stat-card"><div class="stat-label">Airports</div><div class="stat-value" id="statAirport">—</div></div>
+    <div class="stat-card"><div class="stat-label">Freeform</div><div class="stat-value" id="statFreeform">—</div></div>
+    <div class="stat-card"><div class="stat-label">Unique Locations</div><div class="stat-value" id="statUnique">—</div></div>
+  </div>
+
+  <div class="cols" id="colsSection" style="display:none">
+    <div class="panel">
+      <div class="panel-head">Searches per day (last 30)</div>
+      <div class="day-chart" id="dayChart"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Top locations</div>
+      <table class="loc-table">
+        <thead><tr><th>Location</th><th>Type</th><th style="text-align:right">Searches</th></tr></thead>
+        <tbody id="topLocBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="danger-zone" id="cachePanel" style="display:none">
+    <h3>Cache Management</h3>
+    <div class="btn-row">
+      <button class="btn-warn" onclick="resetBirds()">Reset bird cache (keep drive times)</button>
+      <button class="btn-danger" onclick="resetAll()">Reset everything</button>
+    </div>
+    <div id="resetMsg" style="margin-top:0.5rem;font-size:0.82rem;color:#374151"></div>
+  </div>
+
+  <div class="panel" id="searchesPanel" style="display:none">
+    <div class="searches-head">
+      <span>Recent searches</span>
+      <select id="typeFilter" onchange="applyFilter()">
+        <option value="">All types</option>
+        <option value="zip">ZIP</option>
+        <option value="airport">Airport</option>
+        <option value="freeform">Freeform</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table class="searches">
+        <thead>
+          <tr>
+            <th>Time (UTC)</th>
+            <th>Location</th>
+            <th>Type</th>
+            <th>Lat</th>
+            <th>Lon</th>
+            <th>Max</th>
+          </tr>
+        </thead>
+        <tbody id="searchBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  const API_URL = window.location.origin;
+
+  window.onload = () => {
+    $('adminKey').value = localStorage.getItem('birdsAdminKey') || '';
+    if ($('adminKey').value) load();
+  };
+
+  let allSearches = [];
+
+  async function load() {
+    const url = API_URL;
+    const key = $('adminKey').value.trim();
+    if (!key) { showError('Enter the Admin Key.'); return; }
+
+    localStorage.setItem('birdsAdminKey', key);
+    hideError();
+
+    try {
+      const [statsRes, searchesRes] = await Promise.all([
+        fetch(`${url}/api/admin/stats?key=${encodeURIComponent(key)}`),
+        fetch(`${url}/api/admin/searches?key=${encodeURIComponent(key)}&limit=2000`),
+      ]);
+
+      if (!statsRes.ok) { showError(`Error ${statsRes.status}: ${await statsRes.text()}`); return; }
+      if (!searchesRes.ok) { showError(`Error ${searchesRes.status}: ${await searchesRes.text()}`); return; }
+
+      const stats = await statsRes.json();
+      allSearches = await searchesRes.json();
+
+      renderStats(stats);
+      renderDayChart(stats.by_day);
+      renderTopLocs(stats.top_locations);
+      renderSearches(allSearches);
+
+      $('statsRow').style.display = 'flex';
+      $('colsSection').style.display = 'grid';
+      $('cachePanel').style.display = 'block';
+      $('searchesPanel').style.display = 'block';
+    } catch (e) {
+      showError(`Failed to fetch: ${e.message}. Make sure the API URL is correct and the server is running.`);
+    }
+  }
+
+  function renderStats(stats) {
+    $('statTotal').textContent = stats.total.toLocaleString();
+    const byType = Object.fromEntries(stats.by_type.map(r => [r.location_type, r.count]));
+    $('statZip').textContent = (byType.zip || 0).toLocaleString();
+    $('statAirport').textContent = (byType.airport || 0).toLocaleString();
+    $('statFreeform').textContent = (byType.freeform || 0).toLocaleString();
+    $('statUnique').textContent = stats.top_locations.length >= 20 ? '20+' : stats.top_locations.length;
+  }
+
+  function renderDayChart(byDay) {
+    if (!byDay.length) { $('dayChart').innerHTML = '<div class="empty">No data</div>'; return; }
+    const max = Math.max(...byDay.map(r => r.count));
+    $('dayChart').innerHTML = byDay.map(r => `
+      <div class="bar-row">
+        <div class="bar-date">${r.day}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.count/max*100)}%"></div></div>
+        <div class="bar-count">${r.count}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderTopLocs(locs) {
+    if (!locs.length) { $('topLocBody').innerHTML = '<tr><td colspan="3" class="empty">No data</td></tr>'; return; }
+    $('topLocBody').innerHTML = locs.map(r => `
+      <tr>
+        <td>${r.location}</td>
+        <td><span class="badge badge-${r.location_type}">${r.location_type}</span></td>
+        <td style="text-align:right">${r.count}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderSearches(rows) {
+    if (!rows.length) { $('searchBody').innerHTML = '<tr><td colspan="6" class="empty">No searches yet</td></tr>'; return; }
+    $('searchBody').innerHTML = rows.map(r => `
+      <tr>
+        <td class="ts">${r.searched_at.replace('T', ' ').slice(0, 19)}</td>
+        <td>${r.location}</td>
+        <td><span class="badge badge-${r.location_type}">${r.location_type}</span></td>
+        <td>${r.lat?.toFixed(4) ?? ''}</td>
+        <td>${r.lon?.toFixed(4) ?? ''}</td>
+        <td>${r.max_num}</td>
+      </tr>
+    `).join('');
+  }
+
+  function applyFilter() {
+    const type = $('typeFilter').value;
+    const filtered = type ? allSearches.filter(r => r.location_type === type) : allSearches;
+    renderSearches(filtered);
+  }
+
+  async function resetBirds() {
+    if (!confirm('Clear bird cache (hotspots + goldens)? Drive times are preserved.')) return
+    await adminAction('/api/admin/reset-birds')
+  }
+
+  async function resetAll() {
+    if (!confirm('Clear EVERYTHING including drive times? This will make the next search very slow.')) return
+    await adminAction('/api/admin/reset-all')
+  }
+
+  async function adminAction(path) {
+    const url = API_URL
+    const key = $('adminKey').value.trim()
+    if (!key) { showError('Enter the Admin Key first.'); return }
+    try {
+      const res = await fetch(`${url}${path}?key=${encodeURIComponent(key)}`)
+      const data = await res.json()
+      $('resetMsg').textContent = res.ok ? `✓ ${data.message}` : `Error: ${data.detail}`
+    } catch (e) {
+      $('resetMsg').textContent = `Failed: ${e.message}`
+    }
+  }
+
+  function showError(msg) { $('error').textContent = msg; $('error').style.display = 'block'; }
+  function hideError() { $('error').style.display = 'none'; }
+</script>
+</body>
+</html>
