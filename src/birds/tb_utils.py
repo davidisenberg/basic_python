@@ -5,8 +5,8 @@ from birds.ebird import get_ebird_taxonomy, get_ebird_hotspots, get_recent_obs, 
 from birds.tb_db import (
     create_table, does_exist, get_local_taxonomy, get_local_hotspots,
     does_hotspot_exist, append_table, get_optimized_hotspots,
-    does_golden_exist, get_local_goldens, get_duration, set_duration,
-    invalidate_location,
+    does_golden_exist, get_cached_golden_loc_ids, get_local_goldens,
+    get_duration, set_duration, invalidate_location,
 )
 from geopy.distance import geodesic
 from routing.routing import get_ride_time
@@ -167,6 +167,8 @@ def compute_obs_stats(obs_df, taxonomy_df):
 
 def _format_goldens(df):
     df = df.copy()
+    if 'golden_rank' not in df.columns:
+        df['golden_rank'] = 0.0
     if 'duration' in df.columns:
         df['duration2'] = round(df['duration'] / 60 / 60, 1)
     else:
@@ -197,68 +199,96 @@ def _fetch_hotspot_data(row, taxonomy_df):
     return stats, num_cl, num_contrib
 
 
+_STAT_KEYS = [
+    'numSpeciesTwoWeeks', 'numBirdsTwoWeeks',
+    'numHighValue', 'numRaptors', 'numWarblers', 'numShorebirds', 'numWaterfowl',
+    'weightedBirds',
+    'highValueNames', 'raptorNames', 'warblerNames', 'shorebirdNames', 'waterfowlNames',
+]
+
+
 def stream_tb_goldens(name: str, lat, long, max_num):
     """Generator yielding ('progress', dict) then ('done', DataFrame)."""
     get_tb_hotspots(name, lat, long)
 
-    golden_key = name + str(max_num)
-    if does_golden_exist(golden_key):
-        print("golden cache hit: " + golden_key)
-        yield 'done', _format_goldens(get_local_goldens(golden_key))
+    if does_golden_exist(name, max_num):
+        print(f"golden cache hit: {name}")
+        yield 'done', _format_goldens(get_local_goldens(name))
         return
 
     taxonomy_df = get_tb_taxonomy()
-    df = get_optimized_hotspots(name, max_num)
-    rows = list(df.iterrows())
-    total = len(rows)
+    df_candidates = get_optimized_hotspots(name, max_num)
 
-    results = [None] * total
+    # Split into already-cached and new — avoids re-fetching eBird data we already have
+    cached_ids = get_cached_golden_loc_ids(name)
+    df_cached  = get_local_goldens(name) if cached_ids else pd.DataFrame()
+    df_cached_in_set = (
+        df_cached[df_cached['locId'].isin(df_candidates['locId'])]
+        if not df_cached.empty else pd.DataFrame()
+    )
+    df_new = df_candidates[~df_candidates['locId'].isin(cached_ids)].copy()
+    total_new = len(df_new)
+
+    # All candidates already cached (fewer good spots than max_num)
+    if total_new == 0:
+        yield 'done', _format_goldens(df_cached_in_set)
+        return
+
+    results = [None] * total_new
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_idx = {
             executor.submit(_fetch_hotspot_data, row, taxonomy_df): i
-            for i, (_, row) in enumerate(rows)
+            for i, (_, row) in enumerate(df_new.iterrows())
         }
         completed = 0
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
             results[idx] = future.result()
             completed += 1
-            yield 'progress', {'current': completed, 'total': total * 2, 'message': f'Bird data: {completed}/{total}'}
+            yield 'progress', {'current': completed, 'total': total_new * 2, 'message': f'Bird data: {completed}/{total_new}'}
 
-    stats_list      = [r[0] for r in results]
-    checklists_list = [r[1] for r in results]
-    contributors_list = [r[2] for r in results]
+    for key in _STAT_KEYS:
+        df_new[key] = [r[0][key] for r in results]
+    df_new['numChecklists']   = [r[1] for r in results]
+    df_new['numContributors'] = [r[2] for r in results]
 
-    df = df.copy()
-    for key in ['numSpeciesTwoWeeks', 'numBirdsTwoWeeks',
-                'numHighValue', 'numRaptors', 'numWarblers', 'numShorebirds', 'numWaterfowl',
-                'weightedBirds',
-                'highValueNames', 'raptorNames', 'warblerNames', 'shorebirdNames', 'waterfowlNames']:
-        df[key] = [s[key] for s in stats_list]
-    df['numChecklists']   = checklists_list
-    df['numContributors'] = contributors_list
+    # Merge with any already-cached candidates for ranking + drive times
+    frames = [f for f in [df_cached_in_set, df_new] if not f.empty]
+    df_all = pd.concat(frames, ignore_index=True)
+    n_cached_in_set = len(df_cached_in_set)
 
-    checklist_factor = df['numChecklists'].clip(lower=1) ** 0.3
+    checklist_factor = df_all['numChecklists'].clip(lower=1) ** 0.3
 
-    # Preliminary ranking: use distance as a drive-time proxy (~40 mph → 1.5 min/mile)
-    duration_proxy = df['distance_miles'].clip(lower=0.1) * 90  # seconds
-    df['golden_rank'] = df['numSpeciesTwoWeeks'] ** 2 * df['weightedBirds'] * checklist_factor / (duration_proxy / 60 / 3)
-    yield 'preliminary', _format_goldens(df)
+    # Preliminary ranking: distance proxy (~40 mph)
+    duration_proxy = df_all['distance_miles'].clip(lower=0.1) * 90
+    df_all['golden_rank'] = (
+        df_all['numSpeciesTwoWeeks'] ** 2 * df_all['weightedBirds']
+        * checklist_factor / (duration_proxy / 60 / 3)
+    )
+    yield 'preliminary', _format_goldens(df_all)
 
+    # Drive times — cached rows are fast lookups; only truly new spots hit ORS
+    total_all = len(df_all)
     durations = []
-    for _, row in df.iterrows():
+    for _, row in df_all.iterrows():
         duration = get_ride_time_or_cached(name, row['lat'], row['lng'], str(lat), str(long))
         durations.append(duration)
         n = len(durations)
-        yield 'progress', {'current': total + n, 'total': total * 2, 'message': f'Drive times: {n}/{total}'}
+        yield 'progress', {'current': total_new + n, 'total': total_new + total_all, 'message': f'Drive times: {n}/{total_all}'}
 
-    df['duration'] = durations
-    df['golden_rank'] = df['numSpeciesTwoWeeks'] ** 2 * df['weightedBirds'] * checklist_factor / (df['duration'] / 60 / 3)
-    df['loc_name'] = golden_key
+    df_all['duration'] = durations
+    df_all['golden_rank'] = (
+        df_all['numSpeciesTwoWeeks'] ** 2 * df_all['weightedBirds']
+        * checklist_factor / (df_all['duration'] / 60 / 3)
+    )
 
-    append_table("goldens", df.drop(columns=['fetched_date'], errors='ignore'))
+    # Persist only the newly fetched rows (include golden_rank so cache is complete)
+    df_new['duration']    = durations[n_cached_in_set:]
+    df_new['golden_rank'] = df_all['golden_rank'].iloc[n_cached_in_set:].values
+    df_new['loc_name']    = name
+    append_table("goldens", df_new.drop(columns=['fetched_date'], errors='ignore'))
 
-    yield 'done', _format_goldens(df)
+    yield 'done', _format_goldens(df_all)
 
 
 def get_tb_goldens(name: str, lat, long, max_num):

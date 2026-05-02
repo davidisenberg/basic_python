@@ -223,7 +223,7 @@ def does_hotspot_exist(loc_name: str):
 
 def invalidate_location(loc_name: str):
     con.execute("DELETE FROM hotspots WHERE loc_name = ?", [loc_name])
-    con.execute("DELETE FROM goldens WHERE loc_name LIKE ?", [loc_name + '%'])
+    con.execute("DELETE FROM goldens WHERE loc_name = ?", [loc_name])
     con.commit()
 
 
@@ -243,11 +243,18 @@ def get_optimized_hotspots(loc_name: str, max_num: int):
 #------------
 # GOLDENS
 #------------
-def does_golden_exist(loc_name: str):
+def does_golden_exist(loc_name: str, max_num: int = 1):
     if not does_exist('goldens'):
         return False
-    rows = con.execute("SELECT Count(*) FROM goldens WHERE loc_name = ?", [loc_name]).fetchall()
-    return rows[0][0] > 0
+    rows = con.execute("SELECT COUNT(*) FROM goldens WHERE loc_name = ?", [loc_name]).fetchall()
+    return rows[0][0] >= max_num
+
+
+def get_cached_golden_loc_ids(loc_name: str):
+    if not does_exist('goldens'):
+        return set()
+    rows = con.execute("SELECT locId FROM goldens WHERE loc_name = ?", [loc_name]).fetchall()
+    return {r[0] for r in rows}
 
 
 def get_local_goldens(loc_name: str):

@@ -142,6 +142,47 @@ def get_goldens(
     return {"location": location, "lat": lat, "lon": lon, "results": df.to_dict(orient="records")}
 
 
+@app.get("/api/airports")
+def search_airports(q: str = Query(..., min_length=2, max_length=50)):
+    q_low = q.strip().lower()
+    results = []
+    for code, ap in _airports.items():
+        city = (ap.get('city') or '').lower()
+        name = (ap.get('name') or '').lower()
+        subd = (ap.get('subd') or '').lower()
+        if q_low in city or q_low in name or q_low in subd or q_low in code.lower():
+            results.append({
+                'code':    code,
+                'name':    ap.get('name', ''),
+                'city':    ap.get('city', ''),
+                'subd':    ap.get('subd', ''),
+                'country': ap.get('country', ''),
+            })
+    results.sort(key=lambda x: (
+        x['country'] != 'US',
+        not x['city'].lower().startswith(q_low),
+        x['city'],
+        x['code'],
+    ))
+    return results[:8]
+
+
+@app.get("/api/admin/reset-birds")
+def admin_reset_birds(key: str = Query(...)):
+    _require_admin(key)
+    from birds.tb_db import reset_birds_cache
+    reset_birds_cache()
+    return {"status": "ok", "message": "Bird cache cleared (drive times preserved)"}
+
+
+@app.get("/api/admin/reset-all")
+def admin_reset_all(key: str = Query(...)):
+    _require_admin(key)
+    from birds.tb_db import start_over_hotspots
+    start_over_hotspots()
+    return {"status": "ok", "message": "Full cache cleared"}
+
+
 @app.get("/api/admin/stats")
 def admin_stats(key: str = Query(...)):
     _require_admin(key)

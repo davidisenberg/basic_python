@@ -455,17 +455,20 @@ function HotspotGrid({ results, weights, selectedBird }) {
   )
 }
 
-function ProgressBar({ progress }) {
+function ProgressBar({ progress, onStop }) {
   const isIndeterminate = !progress || progress.total === 0
   const pct = isIndeterminate ? 0 : Math.round((progress.current / progress.total) * 100)
 
   return (
     <div className="progress-container">
-      <div className="progress-track">
-        <div
-          className={`progress-fill${isIndeterminate ? ' indeterminate' : ''}`}
-          style={isIndeterminate ? {} : { width: `${pct}%` }}
-        />
+      <div className="progress-row">
+        <div className="progress-track">
+          <div
+            className={`progress-fill${isIndeterminate ? ' indeterminate' : ''}`}
+            style={isIndeterminate ? {} : { width: `${pct}%` }}
+          />
+        </div>
+        <button className="stop-btn" onClick={onStop} title="Stop">&#9632;</button>
       </div>
       <p className="progress-label">
         {isIndeterminate ? 'Fetching eBird data…' : `${progress.message} (${pct}%)`}
@@ -487,12 +490,33 @@ export default function App() {
   const [advanced, setAdvanced]     = useState(false)
   const [formatError, setFormatError] = useState(null)
   const [selectedBird, setSelectedBird] = useState(null)
+  const [suggestions, setSuggestions] = useState([])
   const esRef = useRef(null)
+  const suggestTimer = useRef(null)
+
+  const fetchSuggestions = useCallback((val) => {
+    clearTimeout(suggestTimer.current)
+    const trimmed = val.trim()
+    if (trimmed.length < 2 || /^\d+$/.test(trimmed)) { setSuggestions([]); return }
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/airports?q=${encodeURIComponent(trimmed)}`)
+        if (res.ok) setSuggestions(await res.json())
+      } catch { /* network offline */ }
+    }, 280)
+  }, [])
+
+  const pickSuggestion = useCallback((code) => {
+    setInput(code)
+    setSuggestions([])
+    setFormatError(null)
+  }, [])
 
   const toggleAdvanced = useCallback(() => {
     setAdvanced(a => !a)
     setFormatError(null)
     setInput('')
+    setSuggestions([])
   }, [])
 
   const search = useCallback((e) => {
@@ -511,6 +535,7 @@ export default function App() {
     }
 
     if (esRef.current) esRef.current.close()
+    setSuggestions([])
 
     setLoading(true)
     setProgress(null)
@@ -526,7 +551,7 @@ export default function App() {
       const msg = JSON.parse(event.data)
       if (msg.error) {
         es.close()
-        setError('An error occurred. Please try again.')
+        setError(msg.error)
         setLoading(false)
         setProgress(null)
       } else if (msg.done) {
@@ -550,6 +575,12 @@ export default function App() {
     }
   }, [input, maxNum])
 
+  const stop = useCallback(() => {
+    if (esRef.current) { esRef.current.close(); esRef.current = null }
+    setLoading(false)
+    setProgress(null)
+  }, [])
+
   return (
     <div className="app">
       <header>
@@ -558,23 +589,38 @@ export default function App() {
       </header>
 
       <form className="search-form" onSubmit={search}>
-        <input
-          type="text"
-          placeholder={advanced ? 'Enter any address or city, e.g. Hoboken NJ' : 'ZIP or airport code, e.g. 07030 or EWR'}
-          value={input}
-          onChange={e => { setInput(e.target.value); setFormatError(null) }}
-          disabled={loading}
-        />
-        <input
-          type="number"
-          min="1"
-          max="200"
+        <div className="input-wrap">
+          <input
+            type="text"
+            placeholder={advanced ? 'Enter any address or city, e.g. Hoboken NJ' : 'ZIP or airport code, e.g. 07030 or EWR'}
+            value={input}
+            onChange={e => { setInput(e.target.value); setFormatError(null); fetchSuggestions(e.target.value) }}
+            onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+            disabled={loading}
+          />
+          {suggestions.length > 0 && (
+            <div className="suggestions">
+              {suggestions.map(s => (
+                <div key={s.code} className="suggestion-item" onMouseDown={() => pickSuggestion(s.code)}>
+                  <span className="suggestion-code">{s.code}</span>
+                  <span className="suggestion-name">{s.name}</span>
+                  <span className="suggestion-city">{s.city}{s.subd ? `, ${s.subd}` : ''}{s.country !== 'US' ? ` (${s.country})` : ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <select
           value={maxNum}
           onChange={e => setMaxNum(Number(e.target.value))}
           disabled={loading}
-          style={{ width: '70px' }}
           title="Number of spots to check"
-        />
+          className="maxnum-select"
+        >
+          {Array.from({ length: 20 }, (_, i) => (i + 1) * 10).map(n => (
+            <option key={n} value={n}>{n} spots</option>
+          ))}
+        </select>
         <button type="submit" disabled={loading || !input.trim()}>
           {loading ? 'Searching…' : 'Search'}
         </button>
@@ -586,7 +632,7 @@ export default function App() {
         </button>
       </p>
 
-      {loading && <ProgressBar progress={progress} />}
+      {loading && <ProgressBar progress={progress} onStop={stop} />}
       {error   && <div className="status error">{error}</div>}
 
       {data && (
