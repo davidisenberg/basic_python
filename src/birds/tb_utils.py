@@ -169,6 +169,7 @@ def _format_goldens(df):
     df = df.copy()
     if 'golden_rank' not in df.columns:
         df['golden_rank'] = 0.0
+    df['golden_rank'] = df['golden_rank'].replace([float('inf'), float('-inf')], 0.0).fillna(0.0)
     if 'duration' in df.columns:
         df['duration2'] = round(df['duration'] / 60 / 60, 1)
     else:
@@ -186,7 +187,7 @@ def _format_goldens(df):
     df = df.sort_values(by='golden_rank', ascending=False)
     lo, hi = df['golden_rank'].min(), df['golden_rank'].max()
     if hi > lo:
-        df['score'] = (1 + 99 * (df['golden_rank'] - lo) / (hi - lo)).round().astype(int)
+        df['score'] = (1 + 99 * (df['golden_rank'] - lo) / (hi - lo)).round().clip(1, 100).astype(int)
     else:
         df['score'] = 50
     return df

@@ -551,7 +551,7 @@ export default function App() {
       const msg = JSON.parse(event.data)
       if (msg.error) {
         es.close()
-        setError(msg.error)
+        setError('An error occurred. Please try again.')
         setLoading(false)
         setProgress(null)
       } else if (msg.done) {
